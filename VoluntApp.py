@@ -489,7 +489,7 @@ if __name__ == '__main__':
         if not User.query.filter_by(email='admin@voluntapp.com').first():
             admin = User(
                 email='admin@voluntapp.com',
-                password=generate_password_hash('org123', method='pbkdf2:sha256'),
+                password=generate_password_hash('admin', method='pbkdf2:sha256'),
                 nombre='Administrador',
                 rol='admin'
             )
@@ -523,6 +523,23 @@ if __name__ == '__main__':
                 descripcion='Organización humanitaria ofreciendo ayuda en diversas áreas.'
             )
             db.session.add(org_data2)
+
+            org_data3 = Organizacion(
+                nombre='Refood Tetuán',
+                lat=40.4600,
+                lon=-3.6988,
+                descripcion='Proyecto de recuperación y redistribución de alimentos en el barrio de Tetuán.'
+            )
+            db.session.add(org_data3)
+
+            org_data4 = Organizacion(
+                nombre='Voluntariado UFV - Avanza',
+                lat=40.4038,
+                lon=-3.9691,
+                descripcion='Programa de voluntariado de la Universidad Francisco de Vitoria.'
+            )
+            db.session.add(org_data4)
+
             db.session.commit()
 
     # Una vez todo está inicializado, corremos la app
