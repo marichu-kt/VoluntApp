@@ -4,6 +4,18 @@
 
 ¡Bienvenido/a a **VoluntApp**! Este proyecto es un **prototipo educativo** que integra varias tecnologías para demostrar cómo crear una aplicación web (y base para móvil) que conecte a personas con actividades de voluntariado y responsabilidad social.
 
+## 👥 Integrantes del Proyecto
+
+| Usuario GitHub | Cargo en la App       | Responsabilidad Principal         |
+|----------------|------------------------|-----------------------------------|
+| [marichu-k](https://github.com/marichu-k) | Desarrolladora Principal | Lógica de negocio y seguridad     |
+| [JoseUFV22](https://github.com/JoseUFV22) | Backend Developer                  | Pruebas, gestion de datos y API          |
+| [Hugo_Guarido](https://github.com/hguarido55) | Diseñador BD         | Interfaz y gestión de la Base de Datos |
+| [IgnacioPDA](https://github.com/IgnacioPDA) | Frontend Developer       | Gestión de interfaz            |
+| [vittopa](https://github.com/vittopa)     | Backend Developer                  | Pruebas, gestion de datos y API |
+
+
+
 ## ✨ Características Principales
 
 - **Registro e Inicio de Sesión** (Flask-Login y WTForms)  
