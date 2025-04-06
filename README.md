@@ -55,3 +55,8 @@ En un solo archivo `VoluntApp.py` para fines didácticos:
 1. **Instalar dependencias**:
    ```bash
    pip install flask flask_sqlalchemy flask_login flask_wtf wtforms folium reportlab
+   ```
+2. **Iniciar la aplicación**:
+   ```bash
+   python VoluntApp.py
+   ```
