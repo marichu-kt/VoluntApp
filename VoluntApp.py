@@ -29,6 +29,17 @@ from io import BytesIO
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 import os
+from datetime import datetime
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib import colors
+from reportlab.lib.units import cm
+from reportlab.platypus import (SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle)
+from reportlab.lib.enums import TA_LEFT
+from werkzeug.utils import secure_filename
+from reportlab.platypus import KeepTogether
+from reportlab.graphics.shapes import Drawing, Rect, String
+from reportlab.graphics import renderPDF
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'ClaveSecretaVoluntApp'
@@ -105,239 +116,303 @@ class ActividadForm(FlaskForm):
     submit = SubmitField('Crear Actividad')
 
 
-# ----------------------------------------------------------------
-# HTML TEMPLATES (Embed usando render_template_string para simplificar)
-# En producción, se recomienda usar /templates/*.html con render_template.
-# ----------------------------------------------------------------
+# ---------------------------------------------------------------
+#  TEMPLATES PROFESIONALES 100 % RESPONSIVE
+#  (render_template_string)
+# ---------------------------------------------------------------
 html_base = '''
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8" />
-    <title>VoluntApp</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0; padding: 0;
-            background: #f6f6f6;
-        }
-        header {
-            background: #343a40;
-            color: white;
-            padding: 1rem;
-            text-align: center;
-        }
-        nav {
-            background: #ffffff;
-            padding: 0.5rem;
-            border-bottom: 1px solid #ccc;
-            display: flex;
-            justify-content: center;
-            gap: 1rem;
-        }
-        a {
-            text-decoration: none;
-            color: #343a40;
-            font-weight: bold;
-        }
-        a:hover {
-            color: #007bff;
-        }
-        .container {
-            width: 90%;
-            max-width: 800px;
-            margin: 1rem auto;
-            background: #fff;
-            padding: 1rem;
-            box-shadow: 0 0 5px rgba(0,0,0,0.1);
-        }
-        footer {
-            text-align: center;
-            background: #343a40;
-            color: #fff;
-            padding: 1rem;
-            margin-top: 2rem;
-        }
-        .map {
-            width: 100%;
-            height: 500px;
-        }
-        .alert {
-            padding: 0.75rem;
-            background: #ffdddd;
-            color: #900;
-            margin-bottom: 1rem;
-            border-radius: 4px;
-        }
-        .success {
-            background: #ddffdd;
-            color: #090;
-        }
-    </style>
+  <meta charset="utf-8">
+  <title>VoluntApp · Plataforma de Voluntariado</title>
+
+  <!-- Bootstrap 5 (CSS & JS) -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+        rel="stylesheet" crossorigin="anonymous">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+          defer crossorigin="anonymous"></script>
+
+  <!-- Inter font -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap"
+        rel="stylesheet">
+
+  <style>
+    :root{
+      --va-primary: #0d6efd;   /* Azul Bootstrap */
+      --va-accent : #17c1e8;   /* Turquesa */
+      --va-dark   : #0f172a;   /* Gris casi negro */
+    }
+
+    html,body{height:100%;}
+    body{
+      font-family:"Inter",system-ui,sans-serif;
+      background:#f8fafc;
+      display:flex;
+      flex-direction:column;
+    }
+
+    /* NAVBAR */
+    .navbar-brand{font-weight:700;}
+    .nav-link.active{color:var(--va-accent)!important;}
+
+    /* CARD COMÚN */
+    .va-card{
+      background:#fff;
+      border-radius:1rem;
+      box-shadow:0 0 1.25rem rgba(0,0,0,.05);
+      padding:2rem 2.5rem;
+    }
+
+    /* MAPA */
+    .map{width:100%;min-height:520px;border-radius:1rem;overflow:hidden;}
+
+    /* FOOTER */
+    footer{
+      background:var(--va-dark);
+      color:#e2e8f0;
+      margin-top:auto;
+    }
+  </style>
 </head>
 <body>
-    <header>
-        <h1>VoluntApp</h1>
-    </header>
-    <nav>
-        <a href="{{ url_for('index') }}">Inicio</a>
-        {% if current_user.is_authenticated %}
-            <a href="{{ url_for('mapa') }}">Mapa</a>
-            <a href="{{ url_for('actividades') }}">Actividades</a>
-            <a href="{{ url_for('perfil') }}">Perfil</a>
-            <a href="{{ url_for('logout') }}">Cerrar Sesión</a>
-        {% else %}
-            <a href="{{ url_for('login') }}">Iniciar Sesión</a>
-            <a href="{{ url_for('register') }}">Registrarse</a>
-        {% endif %}
-    </nav>
-    <div class="container">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            {% for category, msg in messages %}
-                <div class="alert {% if category == 'success' %}success{% endif %}">{{ msg }}</div>
-            {% endfor %}
-        {% endif %}
-        {% endwith %}
-        {{ body|safe }}
+
+  <!-- NAVBAR FIJA -->
+  <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom sticky-top shadow-sm">
+    <div class="container-xxl">
+      <a class="navbar-brand" href="{{ url_for('index') }}">VoluntApp</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navLinks">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div id="navLinks" class="collapse navbar-collapse justify-content-center">
+        <ul class="navbar-nav gap-2">
+          <li class="nav-item"><a class="nav-link {% if request.endpoint=='index' %}active{% endif %}"
+                                  href="{{ url_for('index') }}">Inicio</a></li>
+          {% if current_user.is_authenticated %}
+            <li class="nav-item"><a class="nav-link {% if request.endpoint=='mapa' %}active{% endif %}"
+                                    href="{{ url_for('mapa') }}">Mapa</a></li>
+            <li class="nav-item"><a class="nav-link {% if request.endpoint=='actividades' %}active{% endif %}"
+                                    href="{{ url_for('actividades') }}">Actividades</a></li>
+            <li class="nav-item"><a class="nav-link {% if request.endpoint=='perfil' %}active{% endif %}"
+                                    href="{{ url_for('perfil') }}">Perfil</a></li>
+            <li class="nav-item"><a class="nav-link" href="{{ url_for('logout') }}">Cerrar&nbsp;sesión</a></li>
+          {% else %}
+            <li class="nav-item"><a class="nav-link {% if request.endpoint=='login' %}active{% endif %}"
+                                    href="{{ url_for('login') }}">Iniciar&nbsp;sesión</a></li>
+            <li class="nav-item"><a class="nav-link {% if request.endpoint=='register' %}active{% endif %}"
+                                    href="{{ url_for('register') }}">Registrarse</a></li>
+          {% endif %}
+        </ul>
+      </div>
     </div>
-    <footer>
-        <p>VoluntApp - Proyecto de Voluntariado Social</p>
-    </footer>
+  </nav>
+
+  <!-- FLASHES -->
+  <div class="container-xxl my-4">
+    {% with messages=get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category,msg in messages %}
+          <div class="alert alert-{{'success' if category=='success' else 'danger'}} alert-dismissible fade show"
+               role="alert">
+            {{ msg }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+  </div>
+
+  <!-- CONTENIDO -->
+  <main class="container-xxl py-3 d-flex justify-content-center">
+    {{ body|safe }}
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="py-4 text-center">
+    <small>© 2025 · VoluntApp · Madrid, España</small>
+  </footer>
 </body>
 </html>
 '''
 
+# ---------------- INDICE / HERO ----------------
 html_index = '''
 {% block body %}
-<h2>Bienvenido/a a VoluntApp</h2>
-<p>Encuentra oportunidades de voluntariado y contribuye a tu comunidad.</p>
+<section class="text-center va-card w-100" style="max-width:820px;">
+  <h2 class="fw-bold mb-3">Bienvenido/a a VoluntApp&nbsp;🌍</h2>
+  <p class="lead mb-4">
+    Conecta con organizaciones solidarias, participa en actividades y lleva un seguimiento
+    de tus horas de voluntariado desde un solo lugar.
+  </p>
+  {% if not current_user.is_authenticated %}
+    <a class="btn btn-lg btn-primary px-5 me-2" href="{{ url_for('register') }}">Crear cuenta</a>
+    <a class="btn btn-lg btn-outline-secondary px-5" href="{{ url_for('login') }}">Ya tengo cuenta</a>
+  {% else %}
+    <a class="btn btn-lg btn-primary px-5" href="{{ url_for('mapa') }}">Explorar oportunidades</a>
+  {% endif %}
+</section>
 {% endblock %}
 '''
 
+# ---------------- LOGIN ----------------
 html_login = '''
 {% block body %}
-<h2>Iniciar Sesión</h2>
-<form method="POST">
+<div class="va-card w-100" style="max-width:480px;">
+  <h2 class="fw-bold text-center mb-4">Iniciar sesión</h2>
+  <form method="POST" novalidate>
     {{ form.csrf_token }}
-    <div>
-        {{ form.email.label }}<br>
-        {{ form.email }}
+    <div class="mb-3">
+      {{ form.email.label(class="form-label") }}
+      {{ form.email(class="form-control") }}
     </div>
-    <br>
-    <div>
-        {{ form.password.label }}<br>
-        {{ form.password }}
+    <div class="mb-3">
+      {{ form.password.label(class="form-label") }}
+      {{ form.password(class="form-control") }}
     </div>
-    <br>
-    <div>
-        {{ form.submit }}
+    <div class="d-grid">
+      {{ form.submit(class="btn btn-primary") }}
     </div>
-</form>
+  </form>
+</div>
 {% endblock %}
 '''
 
+# ---------------- REGISTRO ----------------
 html_register = '''
 {% block body %}
-<h2>Registrarse</h2>
-<form method="POST">
+<div class="va-card w-100" style="max-width:520px;">
+  <h2 class="fw-bold text-center mb-4">Crea tu cuenta</h2>
+  <form method="POST" novalidate>
     {{ form.csrf_token }}
-    <div>
-        {{ form.email.label }}<br>
-        {{ form.email }}
+    <div class="row g-3">
+      <div class="col-md-6">
+        {{ form.nombre.label(class="form-label") }}
+        {{ form.nombre(class="form-control") }}
+      </div>
+      <div class="col-md-6">
+        {{ form.email.label(class="form-label") }}
+        {{ form.email(class="form-control") }}
+      </div>
+      <div class="col-md-6">
+        {{ form.password.label(class="form-label") }}
+        {{ form.password(class="form-control") }}
+      </div>
+      <div class="col-md-6">
+        {{ form.confirm.label(class="form-label") }}
+        {{ form.confirm(class="form-control") }}
+      </div>
     </div>
-    <div>
-        {{ form.nombre.label }}<br>
-        {{ form.nombre }}
+    <div class="d-grid mt-4">
+      {{ form.submit(class="btn btn-primary btn-lg") }}
     </div>
-    <div>
-        {{ form.password.label }}<br>
-        {{ form.password }}
-    </div>
-    <div>
-        {{ form.confirm.label }}<br>
-        {{ form.confirm }}
-    </div>
-    <br>
-    <div>
-        {{ form.submit }}
-    </div>
-</form>
+  </form>
+</div>
 {% endblock %}
 '''
 
+# ---------------- MAPA ----------------
 html_mapa = '''
 {% block body %}
-<h2>Mapa de Oportunidades en Madrid</h2>
-<div class="map">{{ mapa_html|safe }}</div>
+<section class="va-card w-100">
+  <h2 class="fw-bold text-center mb-4">Oportunidades en Madrid</h2>
+  <div class="map">{{ mapa_html|safe }}</div>
+</section>
 {% endblock %}
 '''
 
+# ---------------- ACTIVIDADES ----------------
 html_actividades = '''
 {% block body %}
-<h2>Actividades Disponibles</h2>
+<section class="va-card w-100">
+  <h2 class="fw-bold text-center mb-4">Actividades de voluntariado</h2>
 
-{% if current_user.rol == 'organizacion' or current_user.rol == 'admin' %}
-<h3>Crear Nueva Actividad</h3>
-<form method="POST">
-    {{ form.csrf_token }}
-    <div>
-        {{ form.titulo.label }}<br>
-        {{ form.titulo }}
-    </div>
-    <div>
-        {{ form.descripcion.label }}<br>
-        {{ form.descripcion }}
-    </div>
-    <div>
-        {{ form.fecha.label }}<br>
-        {{ form.fecha }}
-    </div>
-    <div>
+  {% if current_user.rol in ['organizacion','admin'] %}
+    <button class="btn btn-outline-primary mb-3" type="button" data-bs-toggle="collapse"
+            data-bs-target="#formActividad">+ Nueva actividad</button>
+    <div class="collapse" id="formActividad">
+      <form method="POST" class="row g-3 mb-4">
+        {{ form.csrf_token }}
+        <div class="col-md-6">
+          {{ form.titulo.label(class="form-label") }}
+          {{ form.titulo(class="form-control") }}
+        </div>
+        <div class="col-md-6">
+          {{ form.fecha.label(class="form-label") }}
+          {{ form.fecha(class="form-control") }}
+        </div>
+        <div class="col-12">
+          {{ form.descripcion.label(class="form-label") }}
+          {{ form.descripcion(class="form-control", rows=3) }}
+        </div>
         {{ form.org_id }}
-        {{ form.submit }}
+        <div class="col-12 d-grid">
+          {{ form.submit(class="btn btn-success") }}
+        </div>
+      </form>
     </div>
-</form>
-<hr>
-{% endif %}
+  {% endif %}
 
-<ul>
-{% for act in actividades %}
-    <li>
-        <strong>{{ act.titulo }}</strong> - {{ act.fecha }} <br>
-        {{ act.descripcion }}<br>
-        {% if current_user in act.inscritos %}
-            <em>Ya estás inscrito</em>
-        {% else %}
-            <a href="{{ url_for('inscribirse_actividad', actividad_id=act.id) }}">Inscribirse</a>
-        {% endif %}
-    </li>
-    <br>
-{% endfor %}
-</ul>
-
+  <ul class="list-group">
+    {% for act in actividades %}
+      <li class="list-group-item d-flex justify-content-between align-items-start flex-column flex-md-row">
+        <div class="me-auto">
+          <div class="fw-semibold">{{ act.titulo }}</div>
+          <small class="text-muted">{{ act.fecha }}</small>
+          <p class="mb-1 mt-2">{{ act.descripcion }}</p>
+        </div>
+        <div class="ms-md-3 mt-3 mt-md-0">
+          {% if current_user in act.inscritos %}
+            <span class="badge bg-success rounded-pill py-2 px-3">Inscrito</span>
+          {% else %}
+            <a class="btn btn-outline-primary btn-sm"
+               href="{{ url_for('inscribirse_actividad', actividad_id=act.id) }}">Inscribirse</a>
+          {% endif %}
+        </div>
+      </li>
+    {% else %}
+      <li class="list-group-item text-center">No hay actividades disponibles por ahora.</li>
+    {% endfor %}
+  </ul>
+</section>
 {% endblock %}
 '''
 
+# ---------------- PERFIL ----------------
 html_perfil = '''
 {% block body %}
-<h2>Mi Perfil</h2>
-<p><strong>Nombre:</strong> {{ current_user.nombre }}</p>
-<p><strong>Correo:</strong> {{ current_user.email }}</p>
-<p><strong>Rol:</strong> {{ current_user.rol }}</p>
-<p><strong>Horas de Voluntariado:</strong> {{ current_user.horas_voluntariado }}</p>
+<section class="va-card w-100" style="max-width:880px;">
+  <h2 class="fw-bold text-center mb-4">Mi perfil</h2>
 
-<h3>Mis Actividades Inscritas</h3>
-<ul>
-{% for act in current_user.actividades %}
-    <li>{{ act.titulo }} - {{ act.fecha }}</li>
-{% endfor %}
-</ul>
+  <div class="row g-5">
+    <div class="col-md-5">
+      <h5 class="fw-semibold mb-3">Información personal</h5>
+      <ul class="list-group list-group-flush">
+        <li class="list-group-item"><strong>Nombre:</strong> {{ current_user.nombre }}</li>
+        <li class="list-group-item"><strong>Correo:</strong> {{ current_user.email }}</li>
+        <li class="list-group-item"><strong>Rol:</strong> {{ current_user.rol }}</li>
+        <li class="list-group-item"><strong>Horas:</strong> {{ current_user.horas_voluntariado }}</li>
+      </ul>
+      <a href="{{ url_for('generar_reporte_pdf') }}"
+         class="btn btn-outline-secondary btn-sm mt-3 w-100">Descargar reporte (PDF)</a>
+    </div>
 
-<a href="{{ url_for('generar_reporte_pdf') }}">Generar reporte de horas (PDF)</a>
+    <div class="col-md-7">
+      <h5 class="fw-semibold mb-3">Actividades inscritas</h5>
+      <ul class="list-group">
+        {% for act in current_user.actividades %}
+          <li class="list-group-item d-flex justify-content-between align-items-center">
+            {{ act.titulo }}
+            <span class="badge bg-primary">{{ act.fecha }}</span>
+          </li>
+        {% else %}
+          <li class="list-group-item text-center">Aún no te has inscrito en ninguna actividad.</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+</section>
 {% endblock %}
 '''
-
 
 # ----------------------------------------------------------------
 # RUTAS
@@ -445,32 +520,176 @@ def perfil():
         body=render_template_string(html_perfil)
     )
 
+
+# ───────────────────────────────────────────────────────────────
+#  RUTA PDF COMPLETA
+# ───────────────────────────────────────────────────────────────
 @app.route('/generar_reporte_pdf')
 @login_required
 def generar_reporte_pdf():
-    # Generar un PDF con las horas de voluntariado y las actividades inscritas
     buffer = BytesIO()
-    c = canvas.Canvas(buffer, pagesize=A4)
 
-    c.drawString(50, 800, f"Reporte de Voluntariado de {current_user.nombre}")
-    c.drawString(50, 780, f"Email: {current_user.email}")
-    c.drawString(50, 760, f"Horas Totales: {current_user.horas_voluntariado}")
+    doc = SimpleDocTemplate(
+        buffer, pagesize=A4,
+        leftMargin=2*cm, rightMargin=2*cm,
+        topMargin=3*cm, bottomMargin=3*cm
+    )
 
-    c.drawString(50, 730, "Actividades Inscritas:")
-    y = 710
-    for act in current_user.actividades:
-        c.drawString(60, y, f"- {act.titulo} ({act.fecha})")
-        y -= 20
-    c.showPage()
-    c.save()
+    # ── estilos ──
+    styles = getSampleStyleSheet()
+    styles.add(ParagraphStyle("TitleBlue", parent=styles["Title"],
+                              textColor=colors.HexColor("#0d6efd"), alignment=1))
+    styles.add(ParagraphStyle("Heading", parent=styles["Heading3"],
+                              textColor=colors.HexColor("#17c1e8")))
+    styles.add(ParagraphStyle("Cell", fontSize=9, leading=11,
+                              alignment=TA_LEFT, spaceBefore=0, spaceAfter=0))
+
+    # ── CARNÉ DE VOLUNTARIO (12 cm ancho, márgenes ajustados) ──
+    badge_w, badge_h = 12*cm, 7.5*cm
+    badge = Drawing(badge_w, badge_h)
+    badge.hAlign = "CENTER"
+
+    corner_r = 8
+    badge.add(Rect(0, 0, badge_w, badge_h,
+                  rx=corner_r, ry=corner_r,
+                  fillColor=colors.HexColor("#ffd600"), strokeColor=None))
+
+    # ranura superior
+    slot_w, slot_h = 2.4*cm, 0.35*cm
+    badge.add(Rect((badge_w-slot_w)/2, badge_h-1.2*cm,
+                  slot_w, slot_h, rx=2, ry=2,
+                  fillColor=colors.whitesmoke, strokeColor=None))
+
+    # título desplazado un poco más abajo
+    badge.add(String(badge_w/2, badge_h-2.4*cm,        # ↓ antes -2.1 cm
+                    "VoluntApp",
+                    fontName="Helvetica-Bold", fontSize=20,
+                    textAnchor="middle"))
+
+    # caja blanca
+    data_y = 1.1*cm
+    data_h = badge_h - 4.1*cm
+    badge.add(Rect(1*cm, data_y, badge_w-2*cm, data_h,
+                  fillColor=colors.white, strokeColor=None))
+
+    # ── textos dentro de la caja ──
+    top_margin    = 1.0*cm     # margen arriba
+    bottom_margin = 0.6*cm     # margen abajo reducido
+
+    top_y    = data_y + data_h - top_margin
+    bottom_y = data_y + bottom_margin
+    mid_y    = (top_y + bottom_y) / 2
+
+    badge.add(String(badge_w/2, top_y,
+                    current_user.nombre,
+                    fontName="Helvetica-Bold", fontSize=11,
+                    textAnchor="middle"))
+
+    badge.add(String(badge_w/2, mid_y,
+                    current_user.email,
+                    fontName="Helvetica", fontSize=9.5,
+                    textAnchor="middle"))
+
+    badge.add(String(badge_w/2, bottom_y,
+                    f"Horas: {current_user.horas_voluntariado}",
+                    fontName="Helvetica-Oblique", fontSize=9.5,
+                    textAnchor="middle"))
+
+    # ── contenido ──
+    story = [
+        Paragraph(f"Reporte de voluntariado de {current_user.nombre}", styles["TitleBlue"]),
+        Spacer(1, 16),
+        badge,
+        Spacer(1, 26),
+        Paragraph("Actividades inscritas", styles["Heading"]),
+    ]
+
+    datos = [["Actividad", "Descripción", "Fecha"]] + [
+        [
+            Paragraph(act.titulo, styles["Cell"]),
+            Paragraph(act.descripcion, styles["Cell"]),
+            Paragraph(act.fecha if isinstance(act.fecha, str)
+                      else act.fecha.strftime("%d/%m/%Y"), styles["Cell"])
+        ]
+        for act in current_user.actividades
+    ] or [["Sin actividades", "—", "—"]]
+
+    tbl = Table(datos, colWidths=[4.5*cm, 9.5*cm, 3*cm], hAlign="CENTER")
+    tbl.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#0d6efd")),
+        ("TEXTCOLOR",  (0, 0), (-1, 0), colors.white),
+        ("ALIGN",      (0, 0), (-1, 0), "CENTER"),
+        ("VALIGN",     (0, 1), (-1, -1), "TOP"),
+        ("GRID",       (0, 0), (-1, -1), 0.5, colors.grey),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1),
+         [colors.whitesmoke, colors.HexColor("#f1f5ff")]),
+    ]))
+    story.append(tbl)
+
+    # ── generar PDF ──
+    doc.build(story, onFirstPage=_add_header_footer, onLaterPages=_add_header_footer)
 
     pdf = buffer.getvalue()
     buffer.close()
 
-    response = make_response(pdf)
-    response.headers['Content-Type'] = 'application/pdf'
-    response.headers['Content-Disposition'] = 'attachment; filename=reporte_voluntariado.pdf'
-    return response
+    user_slug = secure_filename(current_user.nombre.replace(" ", "_"))
+    filename = f"reporte_voluntariado_{user_slug}.pdf"
+
+    resp = make_response(pdf)
+    resp.headers["Content-Type"] = "application/pdf"
+    resp.headers["Content-Disposition"] = f"attachment; filename={filename}"
+    return resp
+
+
+# ───────────────────────────────────────────────────────────────
+#  CABECERA · PIE · MARCA DE AGUA · FIRMA
+# ───────────────────────────────────────────────────────────────
+def _add_header_footer(canvas, doc):
+    canvas.saveState()
+
+    # Marca de agua
+    page_w, page_h = map(int, A4)
+    canvas.setFont("Helvetica-Bold", 14)
+    canvas.setFillColor(colors.HexColor("#0d6efd"))
+    if hasattr(canvas, "setFillAlpha"):
+        canvas.setFillAlpha(0.10)
+
+    step = 120
+    for x in range(-page_w, int(page_w*1.4), step):
+        for y in range(-page_h, int(page_h*1.4), step):
+            canvas.saveState()
+            canvas.translate(x, y)
+            canvas.rotate(45)
+            canvas.drawString(0, 0, "VoluntApp")
+            canvas.restoreState()
+
+    if hasattr(canvas, "setFillAlpha"):
+        canvas.setFillAlpha(1)
+
+    # Cabecera (solo portada)
+    logo = os.path.join(app.root_path, "images", "voluntapp-banner.png")
+    if os.path.exists(logo) and doc.page == 1:
+        canvas.drawImage(logo, 2*cm, page_h-3*cm, width=5*cm,
+                         preserveAspectRatio=True, mask='auto')
+
+    # Pie
+    canvas.setFont("Helvetica", 9)
+    canvas.setFillColor(colors.grey)
+    canvas.drawString(2*cm, 1.7*cm,
+                      f"Generado: {datetime.now():%d/%m/%Y %H:%M}")
+    canvas.drawRightString(page_w-2*cm, 1.7*cm, f"Pág. {doc.page}")
+
+    # sello centrado
+    if os.path.exists(logo):
+        sello_w = 5*cm
+        sello_h = sello_w*0.25
+        canvas.drawImage(logo, (page_w-sello_w)/2, 1*cm,
+                         width=sello_w, height=sello_h,
+                         preserveAspectRatio=True, mask='auto')
+
+    canvas.restoreState()
+
+
 
 # ----------------------------------------------------------------
 # INICIALIZACIÓN DE BASE DE DATOS + EJECUCIÓN
