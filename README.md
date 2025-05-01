@@ -1,7 +1,7 @@
 # VoluntApp - Plataforma de Voluntariado Social 🌍
 
 <div align="center">
-  <img src="images/voluntapp-banner.png" alt="VoluntApp Banner" width="40%" />
+  <img src="images/voluntapp-banner.png" alt="VoluntApp Banner" width="60%" />
 </div>
 
 ¡Bienvenido/a a **VoluntApp**! Este proyecto es un **prototipo educativo** que integra varias tecnologías para demostrar cómo crear una aplicación web (y base para móvil) que conecte a personas con actividades de voluntariado y responsabilidad social.
