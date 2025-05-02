@@ -1,9 +1,9 @@
 using System;
 using System.IO;
 
-namespace VoluntAppUtils
+namespace VoluntApp
 {
-    public static class SimpleLogger
+    public static class Logger
     {
         //Ruta Logs
         private static string LogPath = "voluntapp.log";
